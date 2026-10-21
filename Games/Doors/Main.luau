@@ -466,7 +466,7 @@ Globals.DoorsNotify = function(NotifyOptions)
 	end)
 end
 
-Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Components/STX.luau"))()
+Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/andersondiogo011-glitch/Abysall/refs/heads/main/Components/STX.luau"))()
 Functions.Notify = function(Settings)
 	local HiddenContainer = GetHiddenContainer()
 
@@ -1310,9 +1310,11 @@ Toggles.BypassLookman:OnChanged(function(Value)
 end)
 Toggles.BypassGloombatEggs:OnChanged(function(Value)
 	for _, Object in Objects.Entities do
-		for _, Part in Object:GetDescendants() do
-			if Part:IsA("BasePart") then
-				Part.CanTouch = not Value
+		if Object.Name == "GloomPile" then
+			for _, Part in Object:GetDescendants() do
+				if Part:IsA("BasePart") then
+					Part.CanTouch = not Value
+				end
 			end
 		end
 	end
@@ -2510,7 +2512,7 @@ Groupboxes.Floors_Farming:AddButton({
 	DoubleClick = true,
 	Tooltip = "Automatically farms deaths, joining new runs.",
 	Func = function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/andersondiogo011-glitch/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
 	end,
 
 	Disabled = not Functions.CheckCompatability({"fireproximityprompt", "firesignal"}),
@@ -2522,7 +2524,7 @@ Groupboxes.Floors_Farming:AddButton({
 	Tooltip = "Copies the death farm loadstring to your clipboard.",
 	Func = function()
 		toclipboard([==[
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/andersondiogo011-glitch/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
 		]==])
 		Library:Notify("Loadstring has been copied to your clipboard.")
 	end,
@@ -3677,7 +3679,7 @@ Functions.HandleObject = function(Object)
 			end
 		end
 		local Connection = Object.DescendantAdded:Connect(function(Part)
-			if Part:IsA("BasePart") then Part.CanTouch = false end
+			if Part:IsA("BasePart") and Toggles.BypassGloombatEggs.Value then Part.CanTouch = false end
 		end)
 
 		if Toggles.EntityESPToggle.Value and Options.EntityESPOptions.Value["Gloombat Eggs"] then
@@ -4469,6 +4471,7 @@ LocalPlayer.CharacterAdded:Connect(function(NewCharacter)
 end)
 
 Library:OnUnload(function()
+	if Functions.UnloadFloorTools then Functions.UnloadFloorTools() end
 	for Key, Connection in Connections do
 		if type(Key) == "string" then
 			pcall(function() Connection:Disconnect() end)
@@ -4593,5 +4596,25 @@ Library:OnUnload(function()
 end)
 
 while not Globals.MainUI do task.wait() end
+local FloorToolsLoaded, FloorToolsResult = pcall(function()
+    local CreateFloorTools = loadstring(game:HttpGet("https://raw.githubusercontent.com/andersondiogo011-glitch/Abysall/refs/heads/main/Games/Doors/FloorTools.luau"))()
+    local EntityNames = table.clone(Entities)
+    for _, Name in { "GrumbleRig", "GiggleCeiling", "LiveEntityBramble", "FigureRig", "FigureRagdoll" } do
+        EntityNames[Name] = { Alias = Name }
+    end
+    return CreateFloorTools({
+        Library = Library, Window = Window, SaveManager = SaveManager, Services = Services,
+        Floor = Floor, FloorReplicated = FloorReplicated, EntityNames = EntityNames,
+        GuiParent = GetHiddenContainer(), Notify = Functions.Notify,
+        CanFirePrompt = Functions.CheckCompatability({"fireproximityprompt"}),
+        TriggerPrompt = Functions.TriggerPrompt,
+    })
+end)
+if FloorToolsLoaded then
+    Functions.UnloadFloorTools = FloorToolsResult
+else
+    warn("Abysall Map Tools: " .. tostring(FloorToolsResult))
+    Functions.Notify({ Title = "Map Tools failed to load", Body = "The original tabs are still available. See the console for details." })
+end
 Abysall.Interface.ApplySettingsTab(Window)
 Functions.Notify({ Title = "Successfully loaded in " .. math.floor((tick() - LoadStart) * 1000) / 1000 .. " seconds." , Body = "Press '" .. tostring(Options.MenuKeybind.Value) .. "' to toggle the UI."})
